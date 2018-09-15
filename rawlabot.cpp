@@ -58,8 +58,6 @@ int main() {
   if (Walabot_GetAntennaPairs(&antennas, &antennaNum) != WALABOT_SUCCESS) {
     wala_screech();
     return 1;
-  } else {
-    printf("Detected %d antenna pairs\n", antennaNum);
   }
 
   for (;;) {
@@ -85,7 +83,7 @@ int main() {
       }
 
       for (int j = 0; j < nums; j++) {
-        printf("%d\t%d\t%f\t%f\n", tx, rx, signal[j], time[j]);
+        printf("%d-%d,%f\n", tx, rx, signal[j]);
       }
     }
   }
