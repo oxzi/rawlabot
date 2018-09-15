@@ -2,7 +2,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-
+#include <thread>
 #ifndef __LINUX__
 #define strtok_r strtok_s
 #endif
@@ -115,13 +115,33 @@ void parseAntennas(char *antennas, int *num, AntennaPair **pairs) {
   }
 }
 
+// Appends the Walabot's data for tx/rx antennas to filename.
+void writeAntennaData(int txAntenna, int rxAntenna, char *filename) {
+  int nums;
+  double *signal, *time;
+  WALABOT_RESULT res;
+
+  res = Walabot_GetSignal(txAntenna, rxAntenna, &signal, &time, &nums);
+  if (res != WALABOT_SUCCESS) {
+    wala_screech();
+    return;
+  }
+
+  FILE *f = fopen(filename, "a");
+  for (int i = 0; i < nums; i++) {
+    fprintf(f, "%d-%d,%f\n", txAntenna, rxAntenna, signal[i]);
+  }
+  fclose(f);
+}
+
 int main(int argc, char **argv) {
-  bool showHelp = true;
+  bool showHelp = false;
+  bool forceHelp = true;
   bool printAntennas = false;
   char *antennas = NULL;
 
   if (argc > 1) {
-    showHelp = false;
+    forceHelp = false;
 
     for (int i = 1; i < argc; i++) {
       if (strcmp(argv[i], "--help") == 0) {
@@ -132,15 +152,15 @@ int main(int argc, char **argv) {
         antennas = argv[++i];
       } else {
         printf("Unknown parameter: %s\n", argv[i]);
-        showHelp = true;
+        forceHelp = true;
         break;
       }
     }
   }
 
-  if (showHelp) {
+  if (showHelp || forceHelp) {
     printHelp();
-    return 0;
+    return forceHelp ? 1 : 0;
   }
 
   // Start up Walabot
@@ -153,10 +173,31 @@ int main(int argc, char **argv) {
   } else {
     int antennaNum;
     AntennaPair *antennaPairs;
+    char **antennaPairFilenames;
+
+    if (antennas == NULL) {
+      printHelp();
+
+      Walabot_Disconnect();
+      return 1;
+    }
 
     parseAntennas(antennas, &antennaNum, &antennaPairs);
 
+    antennaPairFilenames = new char* [antennaNum];
+    for (int i = 0; i < antennaNum; i++) {
+      antennaPairFilenames[i] = new char [10];
+      sprintf(antennaPairFilenames[i], "%d-%d.csv",
+          antennaPairs[i].txAntenna, antennaPairs[i].rxAntenna);
+
+      // Clear file's content
+      FILE *f = fopen(antennaPairFilenames[i], "w");
+      fclose(f);
+    }
+
     for (;;) {
+      std::thread *threads = new std::thread [antennaNum];
+
       if (Walabot_Trigger() != WALABOT_SUCCESS) {
         wala_screech();
 
@@ -164,23 +205,18 @@ int main(int argc, char **argv) {
         return 1;
       }
 
+      // Write each CSV in an own thread
       for (int i = 0; i < antennaNum; i++) {
-        double *signal, *time;
-        int nums, tx, rx;
+        int tx = antennaPairs[i].txAntenna;
+        int rx = antennaPairs[i].rxAntenna;
+        char *filename = antennaPairFilenames[i];
 
-        tx = antennaPairs[i].txAntenna;
-        rx = antennaPairs[i].rxAntenna;
+        threads[i] = std::thread(writeAntennaData, tx, rx, filename);
+      }
 
-        if (Walabot_GetSignal(tx, rx, &signal, &time, &nums) != WALABOT_SUCCESS) {
-          wala_screech();
-
-          Walabot_Disconnect();
-          return 1;
-        }
-
-        for (int j = 0; j < nums; j++) {
-          printf("%d-%d,%f\n", tx, rx, signal[j]);
-        }
+      // Synchronize threads
+      for (int i = 0; i < antennaNum; i++) {
+        threads[i].join();
       }
     }
   }
