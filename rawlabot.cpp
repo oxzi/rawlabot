@@ -30,7 +30,19 @@ bool setup() {
   setup_check(Walabot_SetArenaTheta(-15, 15, 5));
   setup_check(Walabot_SetArenaPhi(-60, 60, 5));
 
+  // Start sensor
   setup_check(Walabot_Start());
+
+  // Start calibration and trigger the sensor until calibration is finished.
+  setup_check(Walabot_StartCalibration());
+
+  APP_STATUS status;
+  double caliPercentage;
+
+  do {
+    setup_check(Walabot_GetStatus(&status, &caliPercentage));
+    setup_check(Walabot_Trigger());
+  } while (status == STATUS_CALIBRATING);
 
   return true;
 }
