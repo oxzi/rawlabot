@@ -3,7 +3,9 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
+
 #ifndef __LINUX__
+// I'm not sure if this even works..
 #define strtok_r strtok_s
 #endif
 
@@ -116,7 +118,7 @@ void parseAntennas(char *antennas, int *num, AntennaPair **pairs) {
 }
 
 // Appends the Walabot's data for tx/rx antennas to filename.
-void writeAntennaData(int txAntenna, int rxAntenna, char *filename) {
+void writeAntennaData(int txAntenna, int rxAntenna, long long numb, char *filename) {
   int nums;
   double *signal, *time;
   WALABOT_RESULT res;
@@ -129,7 +131,7 @@ void writeAntennaData(int txAntenna, int rxAntenna, char *filename) {
 
   FILE *f = fopen(filename, "a");
   for (int i = 0; i < nums; i++) {
-    fprintf(f, "%d-%d,%f\n", txAntenna, rxAntenna, signal[i]);
+    fprintf(f, "%lld,%d,%f\n", numb, i, signal[i]);
   }
   fclose(f);
 }
@@ -192,10 +194,13 @@ int main(int argc, char **argv) {
 
       // Clear file's content
       FILE *f = fopen(antennaPairFilenames[i], "w");
+      fprintf(f, "run,no,signal\n");
       fclose(f);
     }
 
-    for (;;) {
+    printf("rawlabot\nStart recording..\n");
+
+    for (long long numb = 0;; numb++) {
       std::thread *threads = new std::thread [antennaNum];
 
       if (Walabot_Trigger() != WALABOT_SUCCESS) {
@@ -211,7 +216,7 @@ int main(int argc, char **argv) {
         int rx = antennaPairs[i].rxAntenna;
         char *filename = antennaPairFilenames[i];
 
-        threads[i] = std::thread(writeAntennaData, tx, rx, filename);
+        threads[i] = std::thread(writeAntennaData, tx, rx, numb, filename);
       }
 
       // Synchronize threads
