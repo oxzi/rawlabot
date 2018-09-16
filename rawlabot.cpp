@@ -118,19 +118,10 @@ void parseAntennas(char *antennas, int *num, AntennaPair **pairs) {
 }
 
 // Appends the Walabot's data for tx/rx antennas to filename.
-void writeAntennaData(int txAntenna, int rxAntenna, long long numb, char *filename) {
-  int nums;
-  double *signal, *time;
-  WALABOT_RESULT res;
-
-  res = Walabot_GetSignal(txAntenna, rxAntenna, &signal, &time, &nums);
-  if (res != WALABOT_SUCCESS) {
-    wala_screech();
-    return;
-  }
-
+void writeAntennaData(
+    double *signal, int signalNums, long long numb, char *filename) {
   FILE *f = fopen(filename, "a");
-  for (int i = 0; i < nums; i++) {
+  for (int i = 0; i < signalNums; i++) {
     fprintf(f, "%lld,%d,%f\n", numb, i, signal[i]);
   }
   fclose(f);
@@ -192,7 +183,6 @@ int main(int argc, char **argv) {
       sprintf(antennaPairFilenames[i], "%d-%d.csv",
           antennaPairs[i].txAntenna, antennaPairs[i].rxAntenna);
 
-      // Clear file's content
       FILE *f = fopen(antennaPairFilenames[i], "w");
       fprintf(f, "run,no,signal\n");
       fclose(f);
@@ -212,11 +202,23 @@ int main(int argc, char **argv) {
 
       // Write each CSV in an own thread
       for (int i = 0; i < antennaNum; i++) {
-        int tx = antennaPairs[i].txAntenna;
-        int rx = antennaPairs[i].rxAntenna;
-        char *filename = antennaPairFilenames[i];
+        int signalNums;
+        double *signal, *time;
+        WALABOT_RESULT res;
 
-        threads[i] = std::thread(writeAntennaData, tx, rx, numb, filename);
+        res = Walabot_GetSignal(
+            antennaPairs[i].txAntenna, antennaPairs[i].rxAntenna,
+            &signal, &time, &signalNums);
+
+        if (res != WALABOT_SUCCESS) {
+          wala_screech();
+
+          Walabot_Disconnect();
+          return 1;
+        }
+
+        threads[i] = std::thread(writeAntennaData,
+            signal, signalNums, numb, antennaPairFilenames[i]);
       }
 
       // Synchronize threads

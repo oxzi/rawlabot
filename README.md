@@ -37,11 +37,10 @@ You need to have the Walabot SDK installed.
 
 ```bash
 make
-# a rawlabot file should exist now
+# a rawlabot executable should exist now
 ```
 
-Currently this tool is only tested on a GNU/Linux and fails on some starts.
-Perhaps this should be debugged and fixed in the future ( ͡º ͜ʖ ͡º)
+Currently this tool was only tested on a GNU/Linux system.
 
 
 ## plot.py
