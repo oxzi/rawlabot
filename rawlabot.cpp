@@ -26,19 +26,34 @@
 
 // Setup and starts the Walabot. If something wents wrong, an error will be
 // printed and the function returns false.
-bool setup() {
+bool setup(APP_PROFILE profile, int *arenaR, int *arenaTheta, int *arenaPhi) {
   // Connection to an available Walabot
   setup_check(Walabot_ConnectAny());
 
   // Setting scan profile
-  // TODO: make this configurable
-  setup_check(Walabot_SetProfile(PROF_SENSOR));
+  setup_check(Walabot_SetProfile(profile));
 
   // Setting arena
-  // TODO: make this configurable
-  setup_check(Walabot_SetArenaR(10, 60, 1));
-  setup_check(Walabot_SetArenaTheta(-15, 15, 5));
-  setup_check(Walabot_SetArenaPhi(-60, 60, 5));
+  if (arenaR != NULL) {
+    setup_check(Walabot_SetArenaR(
+          arenaR[0], arenaR[1], arenaR[2]));
+  } else {
+    setup_check(Walabot_SetArenaR(10, 60, 1));
+  }
+
+  if (arenaTheta != NULL) {
+    setup_check(Walabot_SetArenaTheta(
+          arenaTheta[0], arenaTheta[1], arenaTheta[2]));
+  } else {
+    setup_check(Walabot_SetArenaTheta(-15, 15, 5));
+  }
+
+  if (arenaPhi != NULL) {
+    setup_check(Walabot_SetArenaPhi(
+          arenaPhi[0], arenaPhi[1], arenaPhi[2]));
+  } else {
+    setup_check(Walabot_SetArenaPhi(-60, 60, 5));
+  }
 
   // Start sensor
   setup_check(Walabot_Start());
@@ -66,6 +81,14 @@ void printHelp() {
   printf("    prints list of antennas (TX/RX)\n\n");
   printf("  --antennas TX1:RX1,TX2:RX2,..\n");
   printf("    dump data from antenna pairs as in --print-antennas\n\n");
+  printf("  --profile short-range|sensor|sensor-narrow\n");
+  printf("    use one of those three profiles\n\n");
+  printf("  --arena-r START,END,RES\n");
+  printf("    set arena's radial range (defaults to 10, 60, 1)\n\n");
+  printf("  --arena-theta START,END,RES\n");
+  printf("    set arena's polar range (default to -15, 15, 5)\n\n");
+  printf("  --arena-phi START,END,RES\n");
+  printf("    set arena's azimuth range (defaults to -60, 60, 5)\n\n");
 }
 
 // Prints all available antenna pairs (TX/RX).
@@ -81,6 +104,21 @@ void printAntennaPairs() {
   printf("List of antenna pairs (TX/RX):\n");
   for (int i = 0; i < num; i++) {
     printf("  %d:%d\n", antennas[i].txAntenna, antennas[i].rxAntenna);
+  }
+}
+
+// Parses an comma-separated int-string like (3,0,-20).
+// [in]  input  : string to be parsed
+// [out] triple : array of three ints
+void parseTriple(char *input, int **triple) {
+  char *tok;
+
+  *triple = new int [3];
+  tok = strtok(input, ",");
+
+  for (int i = 0; i < 3; i++) {
+    (*triple)[i] = atoi(tok);
+    tok = strtok(NULL, ",");
   }
 }
 
@@ -131,7 +169,14 @@ int main(int argc, char **argv) {
   bool showHelp = false;
   bool forceHelp = true;
   bool printAntennas = false;
+
+  int *arenaR = NULL;
+  int *arenaTheta = NULL;
+  int *arenaPhi = NULL;
+
   char *antennas = NULL;
+
+  APP_PROFILE profile = PROF_SENSOR;
 
   if (argc > 1) {
     forceHelp = false;
@@ -143,6 +188,26 @@ int main(int argc, char **argv) {
         printAntennas = true;
       } else if (strcmp(argv[i], "--antennas") == 0) {
         antennas = argv[++i];
+      } else if (strcmp(argv[i], "--profile") == 0) {
+        i++;
+
+        if (strcmp(argv[i], "short-range") == 0) {
+          profile = PROF_SHORT_RANGE_IMAGING;
+        } else if (strcmp(argv[i], "sensor") == 0) {
+          profile = PROF_SENSOR;
+        } else if (strcmp(argv[i], "sensor-narrow") == 0) {
+          profile = PROF_SENSOR_NARROW;
+        } else {
+          printf("Unknown profile: %s\n", argv[i]);
+          forceHelp = true;
+          break;
+        }
+      } else if (strcmp(argv[i], "--arena-r") == 0) {
+        parseTriple(argv[++i], &arenaR);
+      } else if (strcmp(argv[i], "--arena-theta") == 0) {
+        parseTriple(argv[++i], &arenaTheta);
+      } else if (strcmp(argv[i], "--arena-phi") == 0) {
+        parseTriple(argv[++i], &arenaPhi);
       } else {
         printf("Unknown parameter: %s\n", argv[i]);
         forceHelp = true;
@@ -157,7 +222,7 @@ int main(int argc, char **argv) {
   }
 
   // Start up Walabot
-  if (!setup()) {
+  if (!setup(profile, arenaR, arenaTheta, arenaPhi)) {
     return 1;
   }
 
