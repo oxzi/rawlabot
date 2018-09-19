@@ -93,6 +93,8 @@ void printHelp() {
   printf("    set arena's polar range (default to -15,15,5)\n\n");
   printf("  --arena-phi START,END,RES\n");
   printf("    set arena's azimuth range (defaults to -60,60,5)\n\n");
+  printf("  --runs NUMB\n");
+  printf("    query the antenna pairs NUMB times and exit\n\n");
 }
 
 // Prints all available antenna pairs (TX/RX).
@@ -191,6 +193,8 @@ int main(int argc, char **argv) {
 
   char *antennas = NULL;
 
+  long long *runLimit = NULL;
+
   APP_PROFILE profile = PROF_SENSOR;
 
   if (argc > 1) {
@@ -223,6 +227,9 @@ int main(int argc, char **argv) {
         parseTriple(argv[++i], &arenaTheta);
       } else if (strcmp(argv[i], "--arena-phi") == 0) {
         parseTriple(argv[++i], &arenaPhi);
+      } else if (strcmp(argv[i], "--runs") == 0) {
+        runLimit = new long long;
+        *runLimit = atoll(argv[++i]);
       } else {
         printf("Unknown parameter: %s\n", argv[i]);
         forceHelp = true;
@@ -273,7 +280,8 @@ int main(int argc, char **argv) {
     // Register SIGINT handler to stop after Ctrl+C
     signal(SIGINT, handleSigint);
 
-    for (long long numb = 0; RUNNING; numb++) {
+    long long numb;
+    for (numb = 0; RUNNING && (!runLimit || numb < *runLimit); numb++) {
       std::thread *threads = new std::thread [antennaNum];
 
       if (Walabot_Trigger() != WALABOT_SUCCESS) {
@@ -309,6 +317,8 @@ int main(int argc, char **argv) {
         threads[i].join();
       }
     }
+
+    printf("Wrote %lld data sets for each antenna pair\n", numb);
   }
 
   Walabot_Disconnect();

@@ -28,6 +28,9 @@ rawlabot
 
   --arena-phi START,END,RES
     set arena's azimuth range (defaults to -60,60,5)
+
+  --runs NUMB
+    query the antenna pairs NUMB times and exit
 ```
 
 Stores the raw signals between TX antenna *i* and RX antenna *j* in a CSV file.
