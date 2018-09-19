@@ -1,4 +1,5 @@
 #include <WalabotAPI.h>
+#include <csignal>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,9 @@
     return false;                                                              \
   }                                                                            \
 }
+
+// State variable which will be changed by SIGINT (handleSigint)
+bool RUNNING = true;
 
 // Setup and starts the Walabot. If something wents wrong, an error will be
 // printed and the function returns false.
@@ -155,6 +159,17 @@ void parseAntennas(char *antennas, int *num, AntennaPair **pairs) {
   }
 }
 
+// Handle Ctrl+C (SIGINT) to stop at next iteration.
+void handleSigint(int sig) {
+  if (sig != SIGINT) {
+    printf("¯\\_(ツ)_/¯\tSIGINT handler has wrong another signal: %d\n", sig);
+    return;
+  }
+
+  printf("\rSIGINT received, will stop soon..\n");
+  RUNNING = false;
+}
+
 // Appends the Walabot's data for tx/rx antennas to filename.
 void writeAntennaData(
     double *signal, int signalNums, long long numb, char *filename) {
@@ -255,7 +270,10 @@ int main(int argc, char **argv) {
 
     printf("rawlabot\nStart recording..\n");
 
-    for (long long numb = 0;; numb++) {
+    // Register SIGINT handler to stop after Ctrl+C
+    signal(SIGINT, handleSigint);
+
+    for (long long numb = 0; RUNNING; numb++) {
       std::thread *threads = new std::thread [antennaNum];
 
       if (Walabot_Trigger() != WALABOT_SUCCESS) {
