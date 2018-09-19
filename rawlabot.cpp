@@ -86,13 +86,13 @@ void printHelp() {
   printf("  --antennas TX1:RX1,TX2:RX2,..\n");
   printf("    dump data from antenna pairs as in --print-antennas\n\n");
   printf("  --profile short-range|sensor|sensor-narrow\n");
-  printf("    use one of those three profiles\n\n");
+  printf("    use one of those three profiles (defaults to sensor)\n\n");
   printf("  --arena-r START,END,RES\n");
-  printf("    set arena's radial range (defaults to 10, 60, 1)\n\n");
+  printf("    set arena's radial range (defaults to 10,60,1)\n\n");
   printf("  --arena-theta START,END,RES\n");
-  printf("    set arena's polar range (default to -15, 15, 5)\n\n");
+  printf("    set arena's polar range (default to -15,15,5)\n\n");
   printf("  --arena-phi START,END,RES\n");
-  printf("    set arena's azimuth range (defaults to -60, 60, 5)\n\n");
+  printf("    set arena's azimuth range (defaults to -60,60,5)\n\n");
 }
 
 // Prints all available antenna pairs (TX/RX).

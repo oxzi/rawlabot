@@ -18,16 +18,16 @@ rawlabot
     dump data from antenna pairs as in --print-antennas
 
   --profile short-range|sensor|sensor-narrow
-    use one of those three profiles
+    use one of those three profiles (defaults to sensor)
 
   --arena-r START,END,RES
-    set arena's radial range (defaults to 10, 60, 1)
+    set arena's radial range (defaults to 10,60,1)
 
   --arena-theta START,END,RES
-    set arena's polar range (default to -15, 15, 5)
+    set arena's polar range (default to -15,15,5)
 
   --arena-phi START,END,RES
-    set arena's azimuth range (defaults to -60, 60, 5)
+    set arena's azimuth range (defaults to -60,60,5)
 ```
 
 Stores the raw signals between TX antenna *i* and RX antenna *j* in a CSV file.
